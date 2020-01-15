@@ -8,11 +8,11 @@ monitor:
 
 # 展示项设置
 show:
-  openUrl: true
+  openUrl: false
   url: "127.0.0.1"
   initPort: 23333
 
 kafka:
   bootstrapServers: "127.0.0.1:9092"
-  topic: "test"
+  topic: "topic"
 

@@ -28,9 +28,10 @@ public class ScraperTask implements Job {
         JobDataMap jobDataMap = jobExecutionContext.getJobDetail().getJobDataMap();
         String host = jobDataMap.getString("host");
         Map<String, Object> config = JSON.parseObject(jobDataMap.getString("config"), Map.class);
-
+        logger.info("ScraperTask.execute, host={}", host);
         try {
-            List<Collector.MetricFamilySamples> familySamples = new JmxCollector(host, config).collect();
+            JmxCollector jmxCollector = new JmxCollector(host, config);
+            List<Collector.MetricFamilySamples> familySamples = jmxCollector.collect();
 
             JmxParser parser = new JmxParser(familySamples);
             parser.handle();

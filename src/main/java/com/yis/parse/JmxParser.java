@@ -1,6 +1,6 @@
 package com.yis.parse;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSON;
 import com.yis.kafka.KafkaHelper;
 import io.prometheus.client.Collector;
 import org.apache.logging.log4j.core.util.datetime.FastDateFormat;
@@ -26,32 +26,49 @@ public class JmxParser {
     }
 
     public void handle() {
-        List<String> msgs = new ArrayList<>();
         String timestamp = getEsTime();
-        for (Collector.MetricFamilySamples familySample : familySamples) {
-            JSONObject obj = new JSONObject();
 
-            List<JSONObject> samples = new ArrayList<>();
-            for (Collector.MetricFamilySamples.Sample sample : familySample.samples) {
-                Map<String, Object> label = new HashMap<>();
-                JSONObject sam = new JSONObject();
-                for (int i = 0; i < sample.labelNames.size(); i++) {
-                    label.put(sample.labelNames.get(i), sample.labelValues.get(i));
+        for (Collector.MetricFamilySamples fs : familySamples) {
+            Map<String, Object> res = new HashMap<>();
+            String name = fs.name;
+            Collector.Type type = fs.type;
+
+            List<Map<String, Object>> m = new ArrayList<>();
+            for (Collector.MetricFamilySamples.Sample metric : fs.samples) {
+                Map<String, Object> ms = new HashMap<>();
+                ms.put("name", metric.name);
+                ms.put("value", metric.value);
+//                switch (fs.type) {
+//                    case HISTOGRAM:
+//                        break;
+//                    case COUNTER:
+//                        break;
+//                    case GAUGE:
+//
+//                        break;
+//                    case SUMMARY:
+//                        break;
+//                    case UNTYPED:
+//                        break;
+//                    default:
+//                        break;
+//                }
+                List<String> labelNames = metric.labelNames;
+                List<String> labelValues = metric.labelValues;
+                int size = Integer.max(labelNames.size(), labelValues.size());
+                for (int i = 0; i < size; i++) {
+                    ms.put(labelNames.get(i), labelValues.get(i));
                 }
-                sam.put("name", sample.name);
-                sam.put("value", sample.value);
-                sam.put("label", label);
-                samples.add(sam);
+                m.add(ms);
             }
+            res.put("name", name);
+            res.put("type", type);
+            res.put("metrics", m);
+            res.put("timestamp", timestamp);
 
-            obj.put("timestamp", timestamp);
-            obj.put("name", familySample.name);
-            obj.put("type", familySample.type);
-            obj.put("samples", samples);
-            msgs.add(obj.toJSONString());
-        }
-        for (String msg : msgs) {
-            KafkaHelper.getKafkaInstance().pushToKafka(msg);
+            // 发送到kafka
+            KafkaHelper.getKafkaInstance().pushToKafka(JSON.toJSONString(res));
+
         }
     }
 
