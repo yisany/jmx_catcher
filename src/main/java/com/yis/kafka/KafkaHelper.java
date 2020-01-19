@@ -1,10 +1,12 @@
 package com.yis.kafka;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -72,9 +74,9 @@ public class KafkaHelper {
         log.info("kafka producer release.");
     }
 
-    public void pushToKafka(String msg) {
-        producer.sendWithRetry(topic, UUID.randomUUID().toString(), msg);
+    public void pushToKafka(Map<String, Object> result) {
+        log.info("push to Kafka, msg={}", result);
+        producer.sendWithRetry(topic, UUID.randomUUID().toString(), JSON.toJSONString(result));
     }
-
 
 }

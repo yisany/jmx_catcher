@@ -17,6 +17,7 @@ import javax.management.MalformedObjectNameException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -67,7 +68,7 @@ public class JmxStart {
     /**
      * 解析规则,具体可以看jmx_exporter
      */
-    public Map<String, Object> rules;
+    public Map<String, Object> confs;
 
     /**
      * 决定开启多少线程
@@ -118,7 +119,7 @@ public class JmxStart {
                             InetSocketAddress socket = new InetSocketAddress(JmxStart.url, JmxStart.urlPorts[count.getAndIncrement()]);
 
                             new BuildInfoCollector().register();
-                            new JmxCollector(host, rules).register();
+                            new JmxCollector(host, confs).register();
                             new HTTPServer(socket, CollectorRegistry.defaultRegistry);
                         } catch (MalformedObjectNameException e) {
                             logger.error("jmxStart.JmxCollector error, error: {}", e);
@@ -130,10 +131,11 @@ public class JmxStart {
                     JobDetail jobDetail = JobBuilder.newJob(ScraperTask.class)
                             .withIdentity(host, "jmx")
                             .usingJobData("host", host)
-                            .usingJobData("config", JSON.toJSONString(rules))
+                            .usingJobData("config", JSON.toJSONString(confs))
                             .build();
 
                     SimpleTrigger trigger = TriggerBuilder.newTrigger()
+                            .startNow()
                             .withIdentity(host, "jmx")
                             .withSchedule(SimpleScheduleBuilder.simpleSchedule()
                                     .withIntervalInMinutes(interval)
@@ -148,8 +150,18 @@ public class JmxStart {
         }
     }
 
+    /**
+     * 关闭
+     */
     private void release() {
-
+//        try {
+//            if (!scheduler.isShutdown()) {
+//                scheduler.shutdown();
+//            }
+//            KafkaHelper.getKafkaInstance().release();
+//        } catch (SchedulerException e) {
+//            e.printStackTrace();
+//        }
     }
 
     private void initConfig() {
@@ -161,7 +173,10 @@ public class JmxStart {
 
         interval = (int) monitorConfig.get("interval");
         hosts = (String) monitorConfig.get("hosts");
-        rules = (Map<String, Object>) monitorConfig.get("rules");
+        List<Map<String, Object>> rules = (List<Map<String, Object>>) monitorConfig.get("rules");
+        confs = new HashMap(){{
+            put("rules", rules);
+        }};
 
         openUrl = (boolean) showConfig.get("openUrl");
         url = (String) showConfig.get("url");

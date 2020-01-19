@@ -4,7 +4,7 @@ monitor:
   interval: 1
   hosts: "127.0.0.1:1099"
   rules:
-    pattern: ".*"
+    - pattern: ".*"
 
 # 展示项设置
 show:
@@ -14,5 +14,5 @@ show:
 
 kafka:
   bootstrapServers: "127.0.0.1:9092"
-  topic: "topic"
+  topic: "test"
 

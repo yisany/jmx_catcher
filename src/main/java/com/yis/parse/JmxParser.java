@@ -1,6 +1,5 @@
 package com.yis.parse;
 
-import com.alibaba.fastjson.JSON;
 import com.yis.kafka.KafkaHelper;
 import io.prometheus.client.Collector;
 import org.apache.logging.log4j.core.util.datetime.FastDateFormat;
@@ -17,26 +16,27 @@ import java.util.*;
 public class JmxParser {
 
     private final static Logger logger = LoggerFactory.getLogger(JmxParser.class);
-    public final static FastDateFormat TIME_FORMAT = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     private List<Collector.MetricFamilySamples> familySamples;
+    private String host;
+    private String timestamp;
 
-    public JmxParser(List<Collector.MetricFamilySamples> familySamples) {
+    public JmxParser(List<Collector.MetricFamilySamples> familySamples, String host, String timestamp) {
         this.familySamples = familySamples;
+        this.host = host;
+        this.timestamp = timestamp;
     }
 
     public void handle() {
-        String timestamp = getEsTime();
-
         for (Collector.MetricFamilySamples fs : familySamples) {
-            Map<String, Object> res = new HashMap<>();
             String name = fs.name;
             Collector.Type type = fs.type;
 
-            List<Map<String, Object>> m = new ArrayList<>();
             for (Collector.MetricFamilySamples.Sample metric : fs.samples) {
                 Map<String, Object> ms = new HashMap<>();
-                ms.put("name", metric.name);
+                ms.put("name", name);
+                ms.put("type", type);
+                ms.put("metricName", metric.name);
                 ms.put("value", metric.value);
 //                switch (fs.type) {
 //                    case HISTOGRAM:
@@ -55,31 +55,18 @@ public class JmxParser {
 //                }
                 List<String> labelNames = metric.labelNames;
                 List<String> labelValues = metric.labelValues;
-                int size = Integer.max(labelNames.size(), labelValues.size());
+                int size = Integer.min(labelNames.size(), labelValues.size());
                 for (int i = 0; i < size; i++) {
                     ms.put(labelNames.get(i), labelValues.get(i));
                 }
-                m.add(ms);
+                // 发送到kafka
+
+                ms.put("host", host);
+                ms.put("timestamp", timestamp);
+                KafkaHelper.getKafkaInstance().pushToKafka(ms);
             }
-            res.put("name", name);
-            res.put("type", type);
-            res.put("metrics", m);
-            res.put("timestamp", timestamp);
-
-            // 发送到kafka
-            KafkaHelper.getKafkaInstance().pushToKafka(JSON.toJSONString(res));
-
         }
-    }
-
-    /**
-     * 获取ES支持的UTC时间
-     *
-     * @return
-     */
-    public static String getEsTime() {
-        Date date = new Date();
-        return TIME_FORMAT.format(date.getTime() - 8 * 60 * 60 * 1000);
+        logger.info("ok");
     }
 
 }
