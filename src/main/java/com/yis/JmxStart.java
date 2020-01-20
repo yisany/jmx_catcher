@@ -16,10 +16,7 @@ import org.yaml.snakeyaml.Yaml;
 import javax.management.MalformedObjectNameException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -169,25 +166,31 @@ public class JmxStart {
         Map<String, Object> config = yaml.load(this.getClass().getClassLoader().getResourceAsStream("application.yaml"));
         Map<String, Object> monitorConfig = (Map<String, Object>) config.get("monitor");
         Map<String, Object> showConfig = (Map<String, Object>) config.get("show");
-        Map<String, Object> kafkaConfig = (Map<String, Object>) config.get("kafka");
+
 
         interval = (int) monitorConfig.get("interval");
         hosts = (String) monitorConfig.get("hosts");
         List<Map<String, Object>> rules = (List<Map<String, Object>>) monitorConfig.get("rules");
-        confs = new HashMap(){{
+        confs = new HashMap() {{
+            put("lowercaseOutputLabelNames", true);
+            put("lowercaseOutputName", true);
             put("rules", rules);
         }};
 
         openUrl = (boolean) showConfig.get("openUrl");
-        url = (String) showConfig.get("url");
-        initPort = (int) showConfig.get("initPort");
+        if (openUrl) {
+            url = (String) showConfig.get("url");
+            initPort = (int) showConfig.get("initPort");
+        } else {
+            Map<String, Object> kafkaConfig = (Map<String, Object>) config.get("kafka");
+            KafkaHelper
+                    .initKafkaInstance((String) kafkaConfig.get("bootstrapServers"), (String) kafkaConfig.get("topic"))
+                    .prepare();
+        }
 
         hostList = Arrays.asList(hosts.split(","));
         number = hostList.size();
 
-        KafkaHelper
-                .initKafkaInstance((String) kafkaConfig.get("bootstrapServers"), (String) kafkaConfig.get("topic"))
-                .prepare();
 
         urlPorts = new Integer[number];
         for (int i = 0; i < number; i++) {

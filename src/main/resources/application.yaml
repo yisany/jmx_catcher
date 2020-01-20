@@ -2,9 +2,66 @@
 monitor:
   # 采集间隔, 单位min
   interval: 1
-  hosts: "127.0.0.1:1099"
+  hosts: "192.168.10.1:1099,192.168.10.2:1099"
+  lowercaseOutputLabelNames: true
+  lowercaseOutputName: true
   rules:
-    - pattern: ".*"
+# JVM相关信息
+    - pattern: 'java.lang<type=Threading><>(DaemonThreadCount|PeakThreadCount|TotalStartedThreadCount|ThreadCount):'
+      name: jvm_threads_$1
+      help: $1 of a JVM
+      type: GAUGE
+    - pattern: 'java.lang<type=MemoryPool, name=(Code Cache|PS Old Gen|Metaspace|PS Eden Space|PS Surivor Space)><(Usage)>(init|used|max|committed):'
+      name: jvm_memory_pool_bytes_$2
+      labels:
+        pool: "$1"
+      help: $2 bytes of a given JVM memory pool.
+      type: GAUGE
+    - pattern: 'java.lang<type=ClassLoading><>(\w+):'
+      name: jvm_classes_$1
+      help: The number of classes that are currently loaded in the JVM
+      type: GAUGE
+    - pattern: 'java.lang<type=GarbageCollector, name=(\w+\s?\w+)><>(CollectionTime|CollectionCount):'
+      name: jvm_gc_collection_seconds_$2
+      labels:
+        gc: "$1"
+      help: Time spent in a given JVM garbage collector in seconds.
+      type: SUMMARY
+    - pattern: 'java.lang<type=Memory><(\w+)>(init|used|committed|max)'
+      name: jvm_memory_bytes_$2
+      labels:
+        area: "$1"
+      help: $2 bytes of a given JVM memory area.
+      type: GAUGE
+# Tomcat相关信息
+    - pattern: 'Catalina<type=GlobalRequestProcessor, name=\"(\w+-\w+)-(\d+)\"><>(\w+):'
+      name: tomcat_$3_total
+      labels:
+        port: "$2"
+        protocol: "$1"
+      help: Tomcat global $3
+      type: COUNTER
+    - pattern: 'Catalina<j2eeType=Servlet, WebModule=//([-a-zA-Z0-9+&@#/%?=~_|!:.,;]*[-a-zA-Z0-9+&@#/%=~_|]), name=([-a-zA-Z0-9+/$%~_-|!.]*), J2EEApplication=none, J2EEServer=none><>(requestCount|maxTime|processingTime|errorCount):'
+      name: tomcat_servlet_$3_total
+      labels:
+        module: "$1"
+        servlet: "$2"
+      help: Tomcat servlet $3 total
+      type: COUNTER
+    - pattern: 'Catalina<type=ThreadPool, name="(\w+-\w+)-(\d+)"><>(currentThreadCount|currentThreadsBusy|keepAliveCount|pollerThreadCount|connectionCount):'
+      name: tomcat_threadpool_$3
+      labels:
+        port: "$2"
+        protocol: "$1"
+      help: Tomcat threadpool $3
+      type: GAUGE
+    - pattern: 'Catalina<type=Manager, host=([-a-zA-Z0-9+&@#/%?=~_|!:.,;]*[-a-zA-Z0-9+&@#/%=~_|]), context=([-a-zA-Z0-9+/$%~_-|!.]*)><>(processingTime|sessionCounter|rejectedSessions|expiredSessions):'
+      name: tomcat_session_$3_total
+      labels:
+        context: "$2"
+        host: "$1"
+      help: Tomcat session $3 total
+      type: COUNTER
 
 # 展示项设置
 show:
@@ -13,6 +70,6 @@ show:
   initPort: 23333
 
 kafka:
-  bootstrapServers: "127.0.0.1:9092"
-  topic: "test"
+  bootstrapServers: "localhost:9092"
+  topic: "local"
 

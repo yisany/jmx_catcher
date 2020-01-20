@@ -1,5 +1,6 @@
 package com.yis.exporter;
 
+import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +89,6 @@ public class JmxScraper {
                     mBeanNames.add(instance.getObjectName());
                 }
             }
-
             for (ObjectName name : blacklistObjectNames) {
                 for (ObjectInstance instance : beanConn.queryMBeans(name, null)) {
                     mBeanNames.remove(instance.getObjectName());

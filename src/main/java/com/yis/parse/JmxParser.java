@@ -28,6 +28,7 @@ public class JmxParser {
     }
 
     public void handle() {
+        List<Map<String, Object>> m = new ArrayList<>();
         for (Collector.MetricFamilySamples fs : familySamples) {
             String name = fs.name;
             Collector.Type type = fs.type;
@@ -63,10 +64,11 @@ public class JmxParser {
 
                 ms.put("host", host);
                 ms.put("timestamp", timestamp);
+                m.add(ms);
                 KafkaHelper.getKafkaInstance().pushToKafka(ms);
             }
         }
-        logger.info("ok");
+        logger.info("ok, host={}, timestamp={}, size={}", host, timestamp, m.size());
     }
 
 }
