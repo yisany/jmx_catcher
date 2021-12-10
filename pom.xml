@@ -22,7 +22,7 @@
         <fastjson.version>1.2.58</fastjson.version>
         <simpleclient.version>0.6.0</simpleclient.version>
         <commons.lang.version>3.8.1</commons.lang.version>
-        <log4j2.version>2.11.1</log4j2.version>
+        <log4j2.version>2.15.0</log4j2.version>
         <slf4j.version>1.7.25</slf4j.version>
         <quartz.version>2.3.0</quartz.version>
         <kafka.version>2.1.0</kafka.version>
